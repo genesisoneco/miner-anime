@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><title>Miner Animation Demo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;height:100%;display:flex;justify-content:center;align-items:center;background:#111}
+canvas{image-rendering:pixelated;background:#000}
+</style></head><body>
+
+<canvas id="minercanvas" width="240" height="80"></canvas>
+
+<script>
+/* ----- sprite loader ----- */
+const SPRITES = {};
+const names = ['miner_swing1','miner_swing2','block_stone','block_coin',
+              'miner_walk1','miner_walk2','miner_carry1','miner_carry2',
+              'wallet1','wallet2','miner_celebrate'];
+let loaded=0;
+names.forEach(n=>{
+  const img=new Image();
+  img.onload=()=>{if(++loaded===names.length)init();}
+  img.src='assets/'+n+'.png';
+  SPRITES[n]=img;
+});
+
+/* ----- states ----- */
+let cvs,ctx,x=40,state='mine',frame=0,nextCoin=Date.now()+rand(4e3,15e3);
+const stoneX=110,stoneY=32, walletX=190,walletY=32;
+function rand(a,b){return a+Math.random()*(b-a)|0;}
+
+function init(){
+  cvs=document.getElementById('minercanvas');ctx=cvs.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  requestAnimationFrame(loop);
+}
+
+function draw(img,dx,dy){ctx.drawImage(img,dx,dy);} // helper
+
+function loop(){
+  ctx.clearRect(0,0,240,80);
+
+  /* BACKGROUND BLOCK / COIN */
+  if(state==='mine') draw(SPRITES.block_stone,stoneX,stoneY);
+  if(state==='carry') draw(SPRITES.block_coin,stoneX,stoneY);
+
+  /* WALLET */
+  if(state==='celebrate'&&frame<20){
+    draw(SPRITES.wallet2,walletX,walletY-4);
+  }else{
+    draw(SPRITES.wallet1,walletX,walletY);
+  }
+
+  /* MINER */
+  let img=SPRITES.miner_walk1;
+  if(state==='mine'){
+    img = frame%20<10 ? SPRITES.miner_swing1 : SPRITES.miner_swing2;
+  }else if(state==='carry'){
+    img = frame%20<10 ? SPRITES.miner_carry1 : SPRITES.miner_carry2;
+  }else if(state==='celebrate'){
+    img = SPRITES.miner_celebrate;
+  }
+  draw(img,x,16);
+
+  /* FSM */
+  const now=Date.now();
+  if(state==='mine' && now>nextCoin){state='carry';}
+  else if(state==='carry'){
+    x+=2;
+    if(x>=walletX-16){state='celebrate';frame=0;}
+  }
+  else if(state==='celebrate' && frame>60){ // 1 sec celebrate
+    state='mine';x=40;nextCoin=Date.now()+rand(4e3,15e3);
+  }
+  frame++;
+  requestAnimationFrame(loop);
+}
+</script>
+</body></html>
